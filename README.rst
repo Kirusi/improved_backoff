@@ -2,7 +2,7 @@ backoff
 =======
 
 .. image:: https://travis-ci.org/litl/backoff.svg
-    :target: https://travis-ci.org/litl/backoff
+    :target: https://github.com/Kirusi/improved_backoff/actions/workflows/python-package.yml
 .. image:: https://coveralls.io/repos/litl/backoff/badge.svg
     :target: https://coveralls.io/r/litl/backoff?branch=python-3
 .. image:: https://github.com/litl/backoff/workflows/CodeQL/badge.svg
