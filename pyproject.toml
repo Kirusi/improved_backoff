@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "backoff"
-version = "2.2.1"
-description = "Function decoration for backoff and retry"
-authors = ["Bob Green <rgreen@aquent.com>"]
+name = "improved_backoff"
+version = "1.0"
+description = "Clone of popular backoff library with a few fixed bugs"
+authors = ["Kirusi Msafiri <kirusi.msafiri@gmail.com>"]
 readme = "README.rst"
-repository = "https://github.com/litl/backoff"
+repository = "https://github.com/Kirusi/improved_backoff"
 license = "MIT"
 keywords = ["retry", "backoff", "decorators"]
 classifiers = ['Development Status :: 5 - Production/Stable',
