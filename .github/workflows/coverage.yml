@@ -31,5 +31,16 @@ jobs:
     - name: Test with pytest
       run: |
         poetry run pytest --cov-report html:coverage --cov-report term-missing --cov-branch --cov-fail-under=100 --cov=backoff tests
-        poetry run coverage-badge -o coverage.svg
+        mkdir docs
+        poetry run coverage-badge -o docs/coverage.svg
+    - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          # Upload docs directory containing the badge
+          path: './docs'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
 
