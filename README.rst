@@ -9,7 +9,7 @@ improved_backoff
     :target: https://www.python.org/downloads/release/python-390
 .. image:: https://img.shields.io/badge/python-3.10-blue.svg
     :target: https://www.python.org/downloads/release/python-3100
-.. image:: https://github.com/Kirusi/improved_backoff/workflows/Tests/badge.svg
+.. image:: https://github.com/Kirusi/improved_backoff/workflows/tests/badge.svg
     :target: https://github.com/Kirusi/improved_backoff/actions/workflows/tests.yml
 .. image:: https://kirusi.github.io/improved_backoff/coverage.svg
     :target: https://github.com/Kirusi/improved_backoff/actions/workflows/coverage.yml

@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "improved_backoff"
 version = "1.0"
-description = "Clone of popular backoff library with a few fixed bugs"
+description = "Fork of a popular backoff library with a few fixed bugs"
 authors = ["Kirusi Msafiri <kirusi.msafiri@gmail.com>"]
 readme = "README.rst"
 repository = "https://github.com/Kirusi/improved_backoff"
@@ -22,6 +22,7 @@ classifiers = ['Development Status :: 5 - Production/Stable',
                'Topic :: Internet :: WWW/HTTP',
                'Topic :: Software Development :: Libraries :: Python Modules',
                'Topic :: Utilities']
+include = ["CHANGELOG.md", "README.rst", "LICENSE"]
 packages = [
     { include = "improved_backoff" },
 ]
