@@ -1,16 +1,14 @@
 backoff
 =======
 
-.. image:: https://travis-ci.org/litl/backoff.svg
-    :target: https://github.com/Kirusi/improved_backoff/actions/workflows/python-package.yml
-.. image:: https://coveralls.io/repos/litl/backoff/badge.svg
-    :target: https://coveralls.io/r/litl/backoff?branch=python-3
-.. image:: https://github.com/Kirusi/improved_backoff/workflows/CodeQL/badge.svg
-    :target: https://github.com/Kirusi/improved_backoff/actions/workflows/codeql-analysis.yml
+.. image:: https://github.com/Kirusi/improved_backoff/workflows/Tests/badge.svg
+    :target: https://github.com/Kirusi/improved_backoff/actions/workflows/tests.yml
+.. image:: https://kirusi.github.io/improved_backoff/coverage.svg
+    :target: https://github.com/Kirusi/improved_backoff/actions/workflows/coverage.yml
 .. image:: https://img.shields.io/pypi/v/backoff.svg
-    :target: https://pypi.python.org/pypi/backoff
-.. image:: https://img.shields.io/github/license/litl/backoff
-    :target: https://github.com/litl/backoff/blob/master/LICENSE
+    :target: https://pypi.python.org/pypi/improved_backoff
+.. image:: https://img.shields.io/github/license/kirusi/improved_backoff
+    :target: https://github.com/kirusi/improved_backoff/blob/master/LICENSE
 
 **Function decoration for backoff and retry**
 
