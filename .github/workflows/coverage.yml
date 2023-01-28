@@ -36,7 +36,7 @@ jobs:
         poetry install
     - name: Test with pytest
       run: |
-        poetry run pytest --cov-report html:coverage --cov-report term-missing --cov-branch --cov-fail-under=100 --cov=backoff tests
+        poetry run pytest --cov-report html:coverage --cov-report term-missing --cov-branch --cov-fail-under=100 --cov=improved_backoff tests
         mkdir docs
         poetry run coverage-badge -o docs/coverage.svg
     - name: Setup Pages
