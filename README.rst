@@ -23,8 +23,10 @@ improved_backoff
 This is a fork of an excellent Python library 
 `backoff <https://github.com/litl/backoff>`_. The library was forked from version 2.2.1 (October 5, 2022)
 This version includes 2 PRs proposed in the original repo:
+
 * `Correct check for max_time parameter <https://github.com/litl/backoff/pull/130>`_
-* `Using timeit module for time management <https://github.com/litl/backoff/pull/185>`_
+
+* `Using "timeit" module for time management <https://github.com/litl/backoff/pull/185>`_
 
 In order to use this module import it under ``backoff`` alias and use it
 the same way as the original module
