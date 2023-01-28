@@ -1,5 +1,5 @@
-backoff
-=======
+improved_backoff
+================
 
 .. image:: https://img.shields.io/badge/python-3.7-blue.svg
     :target: https://www.python.org/downloads/release/python-370
@@ -21,12 +21,18 @@ backoff
 **Function decoration for backoff and retry**
 
 This is a fork of an excellent Python library 
-`backoff <https://github.com/litl/backoff>`_. This version includes 2 PRs
-proposed in the original repo: `Correct check for max_time parameter <https://github.com/litl/backoff/pull/130>`_
-and `Using timeit module for time management <https://github.com/litl/backoff/pull/185>`
+`backoff <https://github.com/litl/backoff>`_. The library was forked from version 2.2.1 (October 5, 2022)
+This version includes 2 PRs proposed in the original repo:
+* `Correct check for max_time parameter <https://github.com/litl/backoff/pull/130>`_
+* `Using timeit module for time management <https://github.com/litl/backoff/pull/185>`_
 
 In order to use this module import it under ``backoff`` alias and use it
 the same way as the original module
 
 .. code-block:: python
     import improved_backoff as backoff
+
+    @backoff.on_exception(backoff.expo,
+                        requests.exceptions.RequestException)
+    def get_url(url):
+        return requests.get(url)
