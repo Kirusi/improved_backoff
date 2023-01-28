@@ -10,7 +10,7 @@ import unittest.mock
 
 import pytest
 
-import backoff
+import improved_backoff as backoff
 from tests.common import _save_target
 
 

@@ -5,7 +5,7 @@ backoff
     :target: https://github.com/Kirusi/improved_backoff/actions/workflows/tests.yml
 .. image:: https://kirusi.github.io/improved_backoff/coverage.svg
     :target: https://github.com/Kirusi/improved_backoff/actions/workflows/coverage.yml
-.. image:: https://img.shields.io/pypi/v/backoff.svg
+.. image:: https://img.shields.io/pypi/v/improved_backoff.svg
     :target: https://pypi.python.org/pypi/improved_backoff
 .. image:: https://img.shields.io/github/license/kirusi/improved_backoff
     :target: https://github.com/kirusi/improved_backoff/blob/master/LICENSE

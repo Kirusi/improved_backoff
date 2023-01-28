@@ -3,7 +3,7 @@ import functools
 import asyncio
 import timeit
 
-from backoff._common import (_init_wait_gen, _maybe_call, _next_wait)
+from improved_backoff._common import (_init_wait_gen, _maybe_call, _next_wait)
 
 
 def _ensure_coroutine(coro_or_func):

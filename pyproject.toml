@@ -6,7 +6,7 @@ authors = ["Kirusi Msafiri <kirusi.msafiri@gmail.com>"]
 readme = "README.rst"
 repository = "https://github.com/Kirusi/improved_backoff"
 license = "MIT"
-keywords = ["retry", "backoff", "decorators"]
+keywords = ["retry", "backoff", "decorators", "improved_backoff"]
 classifiers = ['Development Status :: 5 - Production/Stable',
                'Intended Audience :: Developers',
                'Programming Language :: Python',
@@ -23,7 +23,7 @@ classifiers = ['Development Status :: 5 - Production/Stable',
                'Topic :: Software Development :: Libraries :: Python Modules',
                'Topic :: Utilities']
 packages = [
-    { include = "backoff" },
+    { include = "improved_backoff" },
 ]
 
 [tool.poetry.dependencies]
