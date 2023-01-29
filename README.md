@@ -23,6 +23,9 @@ the original repo:
 -   [Using \"timeit\" module for time
     management](https://github.com/litl/backoff/pull/185)
 
+The updated behavior of `max_time` is that a a function will be retried only if the elapsed time is less,
+than `max_time`. Also the remaining time should exceed the `interval` (delay between retries).
+
 In order to use this module import it under `backoff` alias and use it
 the same way as the original module
 

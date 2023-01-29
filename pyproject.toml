@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "improved_backoff"
-version = "1.0"
+version = "1.1"
 description = "Fork of a popular backoff library with a few fixed bugs"
 authors = ["Kirusi Msafiri <kirusi.msafiri@gmail.com>"]
 readme = "README.md"
