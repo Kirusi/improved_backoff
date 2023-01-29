@@ -1,6 +1,7 @@
 # coding:utf-8
 
 import asyncio  # Python 3.5 code and syntax is allowed in this file
+import datetime
 import random
 
 import pytest
@@ -735,3 +736,461 @@ def test_on_exception_on_regular_function_without_event_loop(monkeypatch):
     finally:
         # Restore event loop.
         asyncio.set_event_loop(loop)
+
+
+start = 0
+elapsed = 0
+
+
+async def patch_sleep(n):
+    global elapsed
+    elapsed += n
+
+
+def now():
+    return start + elapsed
+
+
+@pytest.fixture
+def max_time_setup(monkeypatch):
+    global start, elapsed
+    start = datetime.datetime(2018, 1, 1, 12, 0, 10, 5).timestamp()
+    elapsed = 0
+
+    monkeypatch.setattr('asyncio.sleep', patch_sleep)
+    monkeypatch.setattr('timeit.default_timer', now)
+    yield
+
+
+@pytest.mark.asyncio
+async def test_on_predicate_max_time_one_attempt_on_time(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 2
+
+    # function succeeds on the first try, within allowed time
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def return_true(log, n):
+        await patch_sleep(2)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = await return_true(log, 0)
+    assert ret is True
+    assert len(log) == 1
+
+
+@pytest.mark.asyncio
+async def test_on_predicate_max_time_two_attempts_on_time(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [2]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 5
+
+    # function succeeds on the second try, within allowed time
+    @backoff.on_predicate(backoff.constant, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def return_true(log, n):
+        await patch_sleep(2)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = await return_true(log, 1)
+    assert ret is True
+    assert len(log) == 2
+
+
+@pytest.mark.asyncio
+async def test_on_predicate_max_time_one_attempt_timeout(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function fails on the first run and exceeds allowed time
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def return_true(log, n):
+        await patch_sleep(4)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = await return_true(log, 10)
+    assert ret is False
+    assert len(log) == 1
+
+
+@pytest.mark.asyncio
+async def test_on_predicate_max_time_two_attempts_timeout(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    # function fails twice, the completion of the second run is after allowed time
+    @backoff.on_predicate(backoff.constant, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def return_true(log, n):
+        await patch_sleep(3)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = await return_true(log, 10)
+    assert ret is False
+    assert len(log) == 2
+
+
+@pytest.mark.asyncio
+async def test_on_predicate_max_time_two_attempts_timeout_callable(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    def max_time():
+        return 6
+
+    # uses a function to provide max_time value
+    @backoff.on_predicate(backoff.constant, interval=1, jitter=None, max_time=max_time,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def return_true(log, n):
+        await patch_sleep(3)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = await return_true(log, 10)
+    assert ret is False
+    assert len(log) == 2
+
+
+@pytest.mark.asyncio
+async def test_on_predicate_max_time_one_attempt_zero_limit(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function is executed once, even if max_time is set to zero
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=0,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def return_true(log, n):
+        await patch_sleep(4)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = await return_true(log, 10)
+    assert ret is False
+    assert len(log) == 1
+
+
+@pytest.mark.asyncio
+async def test_on_predicate_max_time_one_attempt_long_interval(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 3
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # first attempt finishes before max_time,
+    # but the remaining time till max_time is less than specified interval
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=4,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def return_true(log, n):
+        await patch_sleep(3)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = await return_true(log, 10)
+    assert ret is False
+    assert len(log) == 1
+
+
+@pytest.mark.asyncio
+async def test_on_exception_max_time_one_attempt_on_time(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 2
+
+    # function succeeds on the first try, within allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def keyerror_then_true(log, n):
+        await patch_sleep(2)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    ret = await keyerror_then_true(log, 0)
+
+    assert ret is True
+    assert len(log) == 0
+
+
+@pytest.mark.asyncio
+async def test_on_exception_max_time_two_attempts_on_time(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [2]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 5
+
+    # function succeeds on the second try, within allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def keyerror_then_true(log, n):
+        await patch_sleep(2)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    ret = await keyerror_then_true(log, 1)
+    assert ret is True
+    assert len(log) == 1
+
+
+@pytest.mark.asyncio
+async def test_on_exception_max_time_one_attempt_timeout(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function fails on the first run and exceeds allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def keyerror_then_true(log, n):
+        await patch_sleep(4)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        await keyerror_then_true(log, 10)
+    assert len(log) == 1
+
+
+@pytest.mark.asyncio
+async def test_on_exception_max_time_two_attempts_timeout(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    # function fails twice, the completion of the second run is after allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def keyerror_then_true(log, n):
+        await patch_sleep(3)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        await keyerror_then_true(log, 10)
+    assert len(log) == 2
+
+
+@pytest.mark.asyncio
+async def test_on_exception_max_time_two_attempts_timeout_callable(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    def max_time():
+        return 6
+
+    # uses a function to provide max_time value
+    @backoff.on_exception(backoff.constant, KeyError, interval=1, jitter=None,
+                          max_time=max_time,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def keyerror_then_true(log, n):
+        await patch_sleep(3)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        await keyerror_then_true(log, 10)
+    assert len(log) == 2
+
+
+@pytest.mark.asyncio
+async def test_on_exception_max_time_one_attempt_zero_limit(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function is executed once, even if max_time is set to zero
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=0,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def keyerror_then_true(log, n):
+        await patch_sleep(4)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        await keyerror_then_true(log, 10)
+    assert len(log) == 1
+
+
+@pytest.mark.asyncio
+async def test_on_exception_max_time_one_attempt_long_interval(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 3
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # first attempt finishes before max_time,
+    # but the remaining time till max_time is less than specified interval
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=4,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    async def keyerror_then_true(log, n):
+        await patch_sleep(3)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        await keyerror_then_true(log, 10)
+    assert len(log) == 1

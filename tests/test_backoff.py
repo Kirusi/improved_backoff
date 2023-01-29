@@ -44,103 +44,6 @@ def test_on_predicate_max_tries(monkeypatch):
     assert 3 == len(log)
 
 
-def test_on_predicate_max_time(monkeypatch):
-    nows = [
-        datetime.datetime(2018, 1, 1, 12, 0, 10, 5).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 9, 0).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 1, 0).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 0, 0).timestamp(),
-    ]
-
-    def now():
-        return nows.pop()
-
-    monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('timeit.default_timer', now)
-
-    def giveup(details):
-        assert details['tries'] == 3
-        assert abs(details['elapsed'] - 10.000005) < 0.0000001
-
-    @backoff.on_predicate(backoff.expo, jitter=None, max_time=10,
-                          on_giveup=giveup)
-    def return_true(log, n):
-        val = (len(log) == n)
-        log.append(val)
-        return val
-
-    log = []
-    ret = return_true(log, 10)
-    assert ret is False
-    assert len(log) == 3
-
-
-def test_on_predicate_max_time_zero(monkeypatch):
-    nows = [
-        datetime.datetime(2018, 1, 1, 12, 0, 10, 5).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 9, 0).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 1, 0).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 0, 0).timestamp(),
-    ]
-
-    def now():
-        return nows.pop()
-
-    monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('timeit.default_timer', now)
-
-    def giveup(details):
-        assert details['tries'] == 1
-        assert abs(details['elapsed'] - 1) < 0.0000001
-
-    # the function is executed once, even if max_time is zero
-    @backoff.on_predicate(backoff.expo, jitter=None, max_time=0,
-                          on_giveup=giveup)
-    def return_true(log, n):
-        val = (len(log) == n)
-        log.append(val)
-        return val
-
-    log = []
-    ret = return_true(log, 10)
-    assert ret is False
-    assert len(log) == 1
-
-
-def test_on_predicate_max_time_callable(monkeypatch):
-    nows = [
-        datetime.datetime(2018, 1, 1, 12, 0, 10, 5).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 9, 0).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 1, 0).timestamp(),
-        datetime.datetime(2018, 1, 1, 12, 0, 0, 0).timestamp(),
-    ]
-
-    def now():
-        return nows.pop()
-
-    monkeypatch.setattr('time.sleep', lambda x: None)
-    monkeypatch.setattr('timeit.default_timer', now)
-
-    def giveup(details):
-        assert details['tries'] == 3
-        assert abs(details['elapsed'] - 10.000005) < 0.0000001
-
-    def lookup_max_time():
-        return 10
-
-    @backoff.on_predicate(backoff.expo, jitter=None, max_time=lookup_max_time,
-                          on_giveup=giveup)
-    def return_true(log, n):
-        val = (len(log) == n)
-        log.append(val)
-        return val
-
-    log = []
-    ret = return_true(log, 10)
-    assert ret is False
-    assert len(log) == 3
-
-
 def test_on_exception(monkeypatch):
     monkeypatch.setattr('time.sleep', lambda x: None)
 
@@ -928,3 +831,447 @@ def test_event_log_levels(
 
     assert backoff_log_count == max_tries - 1
     assert giveup_log_count == 1
+
+
+start = 0
+elapsed = 0
+
+
+def patch_sleep(n):
+    global elapsed
+    elapsed += n
+
+
+def now():
+    return start + elapsed
+
+
+@pytest.fixture
+def max_time_setup(monkeypatch):
+    global start, elapsed
+    start = datetime.datetime(2018, 1, 1, 12, 0, 10, 5).timestamp()
+    elapsed = 0
+
+    monkeypatch.setattr('time.sleep', patch_sleep)
+    monkeypatch.setattr('timeit.default_timer', now)
+    yield
+
+
+def test_on_predicate_max_time_one_attempt_on_time(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 2
+
+    # function succeeds on the first try, within allowed time
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(2)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 0)
+    assert ret is True
+    assert len(log) == 1
+
+
+def test_on_predicate_max_time_two_attempts_on_time(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [2]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 5
+
+    # function succeeds on the second try, within allowed time
+    @backoff.on_predicate(backoff.constant, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(2)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 1)
+    assert ret is True
+    assert len(log) == 2
+
+
+def test_on_predicate_max_time_one_attempt_timeout(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function fails on the first run and exceeds allowed time
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(4)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 10)
+    assert ret is False
+    assert len(log) == 1
+
+
+def test_on_predicate_max_time_two_attempts_timeout(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    # function fails twice, the completion of the second run is after allowed time
+    @backoff.on_predicate(backoff.constant, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(3)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 10)
+    assert ret is False
+    assert len(log) == 2
+
+
+def test_on_predicate_max_time_two_attempts_timeout_callable(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    def max_time():
+        return 6
+
+    # uses a function to provide max_time value
+    @backoff.on_predicate(backoff.constant, interval=1, jitter=None, max_time=max_time,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(3)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 10)
+    assert ret is False
+    assert len(log) == 2
+
+
+def test_on_predicate_max_time_one_attempt_zero_limit(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function is executed once, even if max_time is set to zero
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=0,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(4)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 10)
+    assert ret is False
+    assert len(log) == 1
+
+
+def test_on_predicate_max_time_one_attempt_long_interval(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 3
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # first attempt finishes before max_time,
+    # but the remaining time till max_time is less than specified interval
+    @backoff.on_predicate(backoff.constant, interval=2, jitter=None, max_time=4,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(3)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 10)
+    assert ret is False
+    assert len(log) == 1
+
+
+def test_on_exception_max_time_one_attempt_on_time(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 2
+
+    # function succeeds on the first try, within allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(2)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    ret = keyerror_then_true(log, 0)
+
+    assert ret is True
+    assert len(log) == 0
+
+
+def test_on_exception_max_time_two_attempts_on_time(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [2]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 5
+
+    # function succeeds on the second try, within allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(2)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    ret = keyerror_then_true(log, 1)
+    assert ret is True
+    assert len(log) == 1
+
+
+def test_on_exception_max_time_one_attempt_timeout(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function fails on the first run and exceeds allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=3,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(4)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        keyerror_then_true(log, 10)
+    assert len(log) == 1
+
+
+def test_on_exception_max_time_two_attempts_timeout(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    # function fails twice, the completion of the second run is after allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(3)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        keyerror_then_true(log, 10)
+    assert len(log) == 2
+
+
+def test_on_exception_max_time_two_attempts_timeout_callable(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [3]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 7
+
+    def success(details, result):
+        raise AssertionError("Invalid operation")
+
+    def max_time():
+        return 6
+
+    # uses a function to provide max_time value
+    @backoff.on_exception(backoff.constant, KeyError, interval=1, jitter=None,
+                          max_time=max_time,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(3)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        keyerror_then_true(log, 10)
+    assert len(log) == 2
+
+
+def test_on_exception_max_time_one_attempt_zero_limit(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 4
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # function is executed once, even if max_time is set to zero
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=0,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(4)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        keyerror_then_true(log, 10)
+    assert len(log) == 1
+
+
+def test_on_exception_max_time_one_attempt_long_interval(max_time_setup):
+
+    def retry(details):
+        raise AssertionError("Invalid operation")
+
+    def giveup(details):
+        assert details['tries'] == 1
+        assert details['elapsed'] == 3
+
+    def success(details):
+        raise AssertionError("Invalid operation")
+
+    # first attempt finishes before max_time,
+    # but the remaining time till max_time is less than specified interval
+    @backoff.on_exception(backoff.constant, KeyError, interval=2, jitter=None, max_time=4,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(3)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    with pytest.raises(KeyError):
+        keyerror_then_true(log, 10)
+    assert len(log) == 1

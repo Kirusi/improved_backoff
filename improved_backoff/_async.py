@@ -63,6 +63,7 @@ def retry_predicate(target, wait_gen, predicate,
         wait = _init_wait_gen(wait_gen, wait_gen_kwargs)
         while True:
             tries += 1
+            ret = await target(*args, **kwargs)
             elapsed = timeit.default_timer() - start
             details = {
                 "target": target,
@@ -72,21 +73,20 @@ def retry_predicate(target, wait_gen, predicate,
                 "elapsed": elapsed,
             }
 
-            ret = await target(*args, **kwargs)
             if predicate(ret):
-                max_tries_exceeded = (tries == max_tries_value)
-                max_time_exceeded = (max_time_value is not None) and (
-                    elapsed >= max_time_value
-                )
-
-                if max_tries_exceeded or max_time_exceeded:
-                    await _call_handlers(on_giveup, **details, value=ret)
-                    break
-
                 try:
                     seconds = _next_wait(wait, ret, jitter, elapsed,
                                          max_time_value)
                 except StopIteration:
+                    await _call_handlers(on_giveup, **details, value=ret)
+                    break
+
+                max_tries_exceeded = (tries == max_tries_value)
+                max_time_exceeded = (max_time_value is not None) and (
+                    elapsed >= max_time_value - seconds
+                )
+
+                if max_tries_exceeded or max_time_exceeded:
                     await _call_handlers(on_giveup, **details, value=ret)
                     break
 
@@ -138,29 +138,19 @@ def retry_exception(target, wait_gen, exception,
         wait = _init_wait_gen(wait_gen, wait_gen_kwargs)
         while True:
             tries += 1
-            elapsed = timeit.default_timer() - start
-            details = {
-                "target": target,
-                "args": args,
-                "kwargs": kwargs,
-                "tries": tries,
-                "elapsed": elapsed,
-            }
 
             try:
                 ret = await target(*args, **kwargs)
             except exception as e:
+                elapsed = timeit.default_timer() - start
+                details = {
+                    "target": target,
+                    "args": args,
+                    "kwargs": kwargs,
+                    "tries": tries,
+                    "elapsed": elapsed,
+                }
                 giveup_result = await giveup(e)
-                max_tries_exceeded = (tries == max_tries_value)
-                max_time_exceeded = (max_time_value is not None) and (
-                    elapsed >= max_time_value
-                )
-
-                if giveup_result or max_tries_exceeded or max_time_exceeded:
-                    await _call_handlers(on_giveup, **details, exception=e)
-                    if raise_on_giveup:
-                        raise
-                    return None
 
                 try:
                     seconds = _next_wait(wait, e, jitter, elapsed,
@@ -168,6 +158,17 @@ def retry_exception(target, wait_gen, exception,
                 except StopIteration:
                     await _call_handlers(on_giveup, **details, exception=e)
                     raise e
+
+                max_tries_exceeded = (tries == max_tries_value)
+                max_time_exceeded = (max_time_value is not None) and (
+                    elapsed >= max_time_value - seconds
+                )
+
+                if giveup_result or max_tries_exceeded or max_time_exceeded:
+                    await _call_handlers(on_giveup, **details, exception=e)
+                    if raise_on_giveup:
+                        raise
+                    return None
 
                 await _call_handlers(on_backoff, **details, wait=seconds,
                                      exception=e)
@@ -183,6 +184,14 @@ def retry_exception(target, wait_gen, exception,
                 #   <https://bugs.python.org/issue28613>
                 await asyncio.sleep(seconds)
             else:
+                elapsed = timeit.default_timer() - start
+                details = {
+                    "target": target,
+                    "args": args,
+                    "kwargs": kwargs,
+                    "tries": tries,
+                    "elapsed": elapsed,
+                }
                 await _call_handlers(on_success, **details)
 
                 return ret
