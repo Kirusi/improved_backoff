@@ -1,5 +1,9 @@
 # Changelog
 
+## [v1.1] - 2023-01-29
+
+- Changed behavior of `max_time` parameter. The function will be retried only if the elapsed time is less, than `max_time`. Also the remaining time should exceed the `interval`, delay between retries.
+
 ## [v1.0] - 2023-01-28
 
 - Forked repo as `improved_backoff`
