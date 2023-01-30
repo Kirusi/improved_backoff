@@ -15,14 +15,13 @@ improved\_backoff
 
 This is a fork of an excellent Python library
 [backoff](https://github.com/litl/backoff). The library was forked on January 26, 2023.
-It includes the original version 2.2.1 (October 5, 2022) and few extra updates.
+It includes the original version 2.2.1 (October 5, 2022) and a few extra updates.
 
 This fork includes 2 PRs proposed in the original repo:
 
--   [Correct check for max\_time
-    parameter](https://github.com/litl/backoff/pull/130)
--   [Using \"timeit\" module for time
-    management](https://github.com/litl/backoff/pull/185)
+-   [Correct check for max\_time parameter](https://github.com/litl/backoff/pull/130)
+-   [Fix some issues around max\_time in \_next\_wait](https://github.com/litl/backoff/pull/136)
+-   [Using \"timeit\" module for time management](https://github.com/litl/backoff/pull/185)
 
 The updated behavior of `max_time` is that a a function will be retried only if the elapsed time is less,
 than `max_time`. Also the remaining time should exceed the `interval` (delay between retries).
