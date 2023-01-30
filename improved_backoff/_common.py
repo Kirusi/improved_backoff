@@ -32,6 +32,8 @@ def _init_wait_gen(wait_gen, wait_gen_kwargs):
 
 
 def _next_wait(wait, send_value, jitter, elapsed, max_time):
+    if (max_time is not None) and (elapsed > max_time):
+        return 0  # we already exceeded allowed time
     value = wait.send(send_value)
     try:
         if jitter is not None:
@@ -52,6 +54,8 @@ def _next_wait(wait, send_value, jitter, elapsed, max_time):
     # don't sleep longer than remaining allotted max_time
     if max_time is not None:
         seconds = min(seconds, max_time - elapsed)
+    if seconds < 0:
+        seconds = 0
 
     return seconds
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## [v1.2] - 2023-01-30
+
+- Changed _common._next_wait to not generate negative values. In other words calcaulated delay between retries cannot be negative. If a negative value is calculated then zero value is used instead.
+
 ## [v1.1] - 2023-01-29
 
 - Changed behavior of `max_time` parameter. The function will be retried only if the elapsed time is less, than `max_time`. Also the remaining time should exceed the `interval`, delay between retries.
