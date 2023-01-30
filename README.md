@@ -17,7 +17,7 @@ This is a fork of an excellent Python library
 [backoff](https://github.com/litl/backoff). The library was forked on January 26, 2023.
 It includes the original version 2.2.1 (October 5, 2022) and a few extra updates.
 
-This fork includes 2 PRs proposed in the original repo:
+The work in this repo was motivated by the following PRs that were proposed in the original repo:
 
 -   [Correct check for max\_time parameter](https://github.com/litl/backoff/pull/130)
 -   [Fix some issues around max\_time in \_next\_wait](https://github.com/litl/backoff/pull/136)
