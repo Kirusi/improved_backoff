@@ -914,6 +914,36 @@ def test_on_predicate_max_time_two_attempts_on_time(max_time_setup):
     assert len(log) == 2
 
 
+def test_on_predicate_max_time_two_attempts_on_time_negative_interval(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [2]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 4
+
+    # function succeeds on the second try, within allowed time
+    @backoff.on_predicate(backoff.constant, interval=-1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def return_true(log, n):
+        patch_sleep(2)
+        val = (len(log) == n)
+        log.append(val)
+        return val
+
+    log = []
+    ret = return_true(log, 1)
+    assert ret is True
+    assert len(log) == 2
+
+
 def test_on_predicate_max_time_one_attempt_timeout(max_time_setup):
 
     def retry(details):
@@ -1106,6 +1136,39 @@ def test_on_exception_max_time_two_attempts_on_time(max_time_setup):
 
     # function succeeds on the second try, within allowed time
     @backoff.on_exception(backoff.constant, KeyError, interval=1, jitter=None, max_time=6,
+                          on_giveup=giveup, on_success=success, on_backoff=retry)
+    def keyerror_then_true(log, n):
+        patch_sleep(2)
+        if len(log) == n:
+            return True
+        e = KeyError()
+        log.append(e)
+        raise e
+
+    log = []
+    ret = keyerror_then_true(log, 1)
+    assert ret is True
+    assert len(log) == 1
+
+
+def test_on_exception_max_time_two_attempts_on_time_negative_interval(max_time_setup):
+
+    def retry(details):
+        count = details['tries']
+        timestamps = [2]
+        assert count == 1
+        assert details['elapsed'] == timestamps[count - 1]
+
+    def giveup(details):
+        raise AssertionError("Invalid operation")
+
+    def success(details):
+        assert details['tries'] == 2
+        assert details['elapsed'] == 4
+
+    # function succeeds on the second try, within allowed time
+    @backoff.on_exception(backoff.constant, KeyError, interval=-1, jitter=None,
+                          max_time=6,
                           on_giveup=giveup, on_success=success, on_backoff=retry)
     def keyerror_then_true(log, n):
         patch_sleep(2)

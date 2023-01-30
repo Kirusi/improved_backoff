@@ -14,9 +14,10 @@ improved\_backoff
 **Function decoration for backoff and retry**
 
 This is a fork of an excellent Python library
-[backoff](https://github.com/litl/backoff). The library was forked from
-version 2.2.1 (October 5, 2022) This version includes 2 PRs proposed in
-the original repo:
+[backoff](https://github.com/litl/backoff). The library was forked on January 26, 2023.
+It includes the original version 2.2.1 (October 5, 2022) and few extra updates.
+
+This fork includes 2 PRs proposed in the original repo:
 
 -   [Correct check for max\_time
     parameter](https://github.com/litl/backoff/pull/130)
@@ -25,6 +26,10 @@ the original repo:
 
 The updated behavior of `max_time` is that a a function will be retried only if the elapsed time is less,
 than `max_time`. Also the remaining time should exceed the `interval` (delay between retries).
+
+The code that calculates delay time was modified to not generate negative values.
+If at the time of calculation elapsed time exceeds specified `max_time` value than delay is set to zero.
+If calculated delay time is negative, then it's also set to zero.
 
 In order to use this module import it under `backoff` alias and use it
 the same way as the original module
