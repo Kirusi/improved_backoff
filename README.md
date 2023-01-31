@@ -5,6 +5,7 @@ improved\_backoff
 [![image](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-380)
 [![image](https://img.shields.io/badge/python-3.9-blue.svg)](https://www.python.org/downloads/release/python-390)
 [![image](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-3100)
+[![image](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-3110)
 
 [![image](https://github.com/Kirusi/improved_backoff/workflows/tests/badge.svg)](https://github.com/Kirusi/improved_backoff/actions/workflows/tests.yml)
 [![image](https://kirusi.github.io/improved_backoff/coverage.svg)](https://github.com/Kirusi/improved_backoff/actions/workflows/coverage.yml)
@@ -23,7 +24,7 @@ The work in this repo was motivated by the following PRs that were proposed in t
 -   [Fix some issues around max\_time in \_next\_wait](https://github.com/litl/backoff/pull/136)
 -   [Using \"timeit\" module for time management](https://github.com/litl/backoff/pull/185)
 
-The updated behavior of `max_time` is that a a function will be retried only if the elapsed time is less,
+The updated behavior of `max_time` is that a function will be retried only if the elapsed time is less
 than `max_time`. Also the remaining time should exceed the `interval` (delay between retries).
 
 The code that calculates delay time was modified to not generate negative values.
